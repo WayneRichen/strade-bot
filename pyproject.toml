@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "strade-bot"
+version = "0.1.0"
+description = "Simple BTC strategy & bot runner"
+authors = ["Wayne <you@example.com>"]
+packages = [{ include = "app" }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+ccxt = "^4.0"
+pymysql = "^1.1"
+redis = "^5.0"
+rq = "^1.15"
+python-dotenv = "^1.0"
+requests = "^2.32"
+dotenv = "^0.9.9"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

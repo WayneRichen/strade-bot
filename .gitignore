@@ -1,0 +1,111 @@
+# -----------------------
+# Python / Poetry 基本設定
+# -----------------------
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Virtual environments
+venv/
+.env/
+.env.*
+
+
+# Poetry things
+poetry.lock
+.venv/
+
+# macOS 系統垃圾檔
+.DS_Store
+
+
+# -----------------------
+# Logs / runtime files
+# -----------------------
+logs/
+*.log
+
+# RQ worker PID files
+*.pid
+
+# Redis dump (如果有用 AOF / RDB)
+dump.rdb
+appendonly.aof
+
+
+# -----------------------
+# SQLite / MySQL dumps
+# -----------------------
+*.sql
+*.sql.gz
+*.sqlite
+
+
+# -----------------------
+# IDE / Editor junk
+# -----------------------
+
+# VSCode
+.vscode/
+
+# PyCharm
+.idea/
+
+# JetBrains
+*.iml
+
+
+# -----------------------
+# Compiled objects / cache
+# -----------------------
+*.pyo
+*.pyd
+*.pdb
+*~
+.cache/
+pytest_cache/
+pip-wheel-metadata/
+
+
+# -----------------------
+# Python package dist
+# -----------------------
+dist/
+build/
+*.egg-info/
+*.egg
+
+
+# -----------------------
+# Test / temp / debug
+# -----------------------
+tmp/
+temp/
+*.tmp
+
+
+# -----------------------
+# CCXT generated data
+# -----------------------
+exchange.json
+markets.json
+
+
+# -----------------------
+# Your project-specific exclusions
+# -----------------------
+
+# 不要 commit 本地環境的 DB / Redis / private keys 等
+config.local.json
+app/config_local.py
+
+# 不要 commit API keys / 測試金鑰
+*.key
+*.pem
+api_keys.json
+

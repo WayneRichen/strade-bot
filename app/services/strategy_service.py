@@ -1,4 +1,5 @@
-from ccxt import binance
+from ccxt import binanceusdm
+import pandas as pd
 from app.utils.db import get_db, query_one, insert_and_get_id, execute
 from app.strategies.btcusdt_breakout import breakout_strategy
 
@@ -19,14 +20,31 @@ def run_strategy(strategy_id: int):
     print("策略：", strategy["name"])
 
     # 拿最新價格（先假設都是 BTCUSDT，用 binance 現貨 / 合約 ticker）
-    client = binance()
-    ticker = client.fetch_ticker("BTC/USDT")
-    price = ticker["last"]
+    ohlcv = binanceusdm().fetch_ohlcv(
+        symbol=strategy['unified_symbol'],
+        timeframe='1h',
+        limit=100
+    )
+
+    # 轉成 DataFrame
+    df = pd.DataFrame(ohlcv, columns=[
+        'timestamp', 'open', 'high', 'low', 'close', 'volume'
+    ])
+
+    # 把 timestamp 轉成可讀時間（UTC）
+    df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+
+    # 排序由舊到新
+    df = df.sort_values('timestamp')
+
+    # 只保留需要的欄位（時間 + OHLCV）
+    df = df[['timestamp', 'open', 'high', 'low', 'close', 'volume']]
+    price = df['close'].iloc[-1]
 
     print("最新 BTC 價格：", price)
 
     # 跑策略，取得訊號
-    signal = breakout_strategy(price)
+    signal = breakout_strategy(df)
 
     if not signal or not signal.get("action"):
         print("策略沒有訊號")
@@ -58,7 +76,8 @@ def run_strategy(strategy_id: int):
         return signal
 
     # ---------- 處理 CLOSE 訊號 ----------
-    if action == "CLOSE":
+    if action in ("CLOSE", "TP_CLOSE", "SL_CLOSE"):
+        action+='D'
         # 找這個策略最新一筆未平倉的 strategy_trades
         with get_db() as db:
             open_trade = query_one(
@@ -96,12 +115,12 @@ def run_strategy(strategy_id: int):
                 UPDATE strategy_trades
                 SET exit_price=%s,
                     exit_at=NOW(),
-                    status='CLOSED',
+                    status=%s,
                     pnl_pct=%s,
                     updated_at=NOW()
                 WHERE id=%s
                 """,
-                (exit_price, pnl_pct, open_trade["id"]),
+                (exit_price, action, pnl_pct, open_trade["id"]),
             )
 
         signal["trade_id"] = open_trade["id"]

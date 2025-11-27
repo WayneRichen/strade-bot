@@ -321,7 +321,6 @@ def close_bot_position(bot_id, signal: dict):
     position_side = user_trade["position_side"]  # LONG / SHORT
     symbol = user_trade["exchange_symbol"]
 
-    # 關倉方向：多單平倉 = sell，空單平倉 = buy
     if position_side == "LONG":
         close_side = "buy"
     else:

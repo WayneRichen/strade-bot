@@ -40,7 +40,7 @@ def run_strategy_tick_job(strategy_id: int):
             print(f"丟 bot 開倉 job: bot_id={bot_id}")
             q.enqueue(run_bot_trade_job, bot_id, signal)
 
-    elif action == "CLOSE":
+    elif action in ("CLOSE", "TP_CLOSE", "SL_CLOSE"):
         print("執行：CLOSE 訊號，準備幫所有 bot 平倉")
 
         for bot in bots:

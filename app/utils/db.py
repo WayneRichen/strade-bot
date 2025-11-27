@@ -1,16 +1,20 @@
 import pymysql
 from pymysql.cursors import DictCursor
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
 class DatabaseConnection:
     """讓你可以用 with get_db() as db 取得自動關閉的 MySQL 連線"""
 
     def __init__(self):
         self.conn = pymysql.connect(
-            host="127.0.0.1",
-            user="root",
-            password="",
-            database="strade",
+            host=os.getenv("DB_HOST", "127.0.0.1"),
+            port=int(os.getenv("DB_PORT", "3306")),
+            user=os.getenv("DB_USERNAME", "root"),
+            password=os.getenv("DB_PASSWORD", ""),
+            database=os.getenv("DB_NAME", "strade"),
             cursorclass=DictCursor,
             autocommit=True,
         )

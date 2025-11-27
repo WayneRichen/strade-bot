@@ -16,6 +16,7 @@ requests = "^2.32"
 dotenv = "^0.9.9"
 pandas = "^2.3.3"
 pandas-ta = "^0.4.71b0"
+apscheduler = "^3.11.1"
 
 [build-system]
 requires = ["poetry-core"]

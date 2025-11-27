@@ -22,13 +22,18 @@ def breakout_strategy(df):
 
     # 停利條件
     if last_order and price > float(last_order['entry_price']) * take_profit:
+        print(f'BTCUSDT Breakout 停利 價格：{price} HIGHEST={highest:.2f}, LOWEST={lowest:.2f} ADX={adx:.2f}')
         return {"action": "TP_CLOSE", "position_side": "LONG", "price": price}
     if regime:
         if (not last_order) and price > highest:
+            print(f'BTCUSDT Breakout 買進 價格：{price} HIGHEST={highest:.2f}, LOWEST={lowest:.2f} ADX={adx:.2f}')
             return {"action": "OPEN", "position_side": "LONG", "price": price}
         elif last_order and price < lowest:
+            print(f'BTCUSDT Breakout 賣出 價格：{price} HIGHEST={highest:.2f}, LOWEST={lowest:.2f} ADX={adx:.2f}')
             return {"action": "CLOSE", "position_side": "LONG", "price": price}
         else:
+            print(f'BTCUSDT Breakout 觀望 價格：{price} HIGHEST={highest:.2f}, LOWEST={lowest:.2f} ADX={adx:.2f}')
             return None
     else:
+        print(f'BTCUSDT Breakout 盤整不動作(ADX < {adx_threshold}) 價格：{price} HIGHEST={highest:.2f}, LOWEST={lowest:.2f} ADX={adx:.2f}')
         return None

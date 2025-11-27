@@ -1,0 +1,21 @@
+services:
+  worker:
+    build: .
+    command: poetry run python -m app.worker
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  worker1:
+    build: .
+    command: poetry run python -m app.worker
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  scheduler:
+    build: .
+    command: poetry run python -m app.main_scheduler
+    env_file:
+      - .env
+    restart: unless-stopped

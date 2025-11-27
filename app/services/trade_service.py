@@ -2,7 +2,10 @@ from app.utils.db import execute, get_db, query_one, insert_and_get_id
 from app.exchange.exchange_factory import build_ccxt_client
 import json
 from ccxt.base.errors import ExchangeError
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
 def run_bot_trade(bot_id, signal):
     with get_db() as db:
@@ -22,7 +25,7 @@ def run_bot_trade(bot_id, signal):
         secret_key=params.get("secret_key"),
         passphrase=params.get("passphrase"),
     )
-    client.set_sandbox_mode(True)
+    client.set_sandbox_mode(bool(int(os.getenv("SANDBOX_MODE", 1))))
 
     qty = float(bot["base_order_usdt"]) / signal["price"]
 
@@ -175,7 +178,7 @@ def check_order_status(user_trade_id: int, exchange_order_id: str):
         secret_key=params.get("secret_key"),
         passphrase=params.get("passphrase"),
     )
-    client.set_sandbox_mode(True)
+    client.set_sandbox_mode(bool(int(os.getenv("SANDBOX_MODE", 1))))
 
     # 2. 呼叫交易所查詢訂單狀態
     try:
@@ -314,7 +317,7 @@ def close_bot_position(bot_id, signal: dict):
         secret_key=params.get("secret_key"),
         passphrase=params.get("passphrase"),
     )
-    client.set_sandbox_mode(True)
+    client.set_sandbox_mode(bool(int(os.getenv("SANDBOX_MODE", 1))))
 
     # 要平掉的數量用 user_trades 的 quantity
     qty = float(user_trade["quantity"])

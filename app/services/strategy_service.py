@@ -1,8 +1,8 @@
 from ccxt import binanceusdm
 import pandas as pd
 from app.utils.db import get_db, query_one, insert_and_get_id, execute
+from app.utils.now import now
 from app.strategies.btcusdt_breakout import breakout_strategy
-
 
 def run_strategy(strategy_id: int):
     # 先抓策略資料
@@ -60,14 +60,14 @@ def run_strategy(strategy_id: int):
         sql = """
             INSERT INTO strategy_trades
             (strategy_id, position_side, entry_price, entry_at, status, created_at, updated_at)
-            VALUES (%s, %s, %s, NOW(), 'OPEN', NOW(), NOW())
+            VALUES (%s, %s, %s, %s, 'OPEN', %s, %s)
         """
 
         with get_db() as db:
             trade_id = insert_and_get_id(
                 db,
                 sql,
-                (strategy_id, position_side, price),
+                (strategy_id, position_side, price, now(), now(), now()),
             )
 
         signal["trade_id"] = trade_id
@@ -114,13 +114,13 @@ def run_strategy(strategy_id: int):
                 """
                 UPDATE strategy_trades
                 SET exit_price=%s,
-                    exit_at=NOW(),
+                    exit_at=%s,
                     status=%s,
                     pnl_pct=%s,
-                    updated_at=NOW()
+                    updated_at=%s
                 WHERE id=%s
                 """,
-                (exit_price, action, pnl_pct, open_trade["id"]),
+                (exit_price, now(), action, pnl_pct, now(), open_trade["id"]),
             )
 
         signal["trade_id"] = open_trade["id"]

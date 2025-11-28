@@ -1,4 +1,5 @@
 from app.utils.db import execute, get_db, query_one, insert_and_get_id
+from app.utils.now import now
 from app.exchange.exchange_factory import build_ccxt_client
 import json
 from ccxt.base.errors import ExchangeError
@@ -75,8 +76,8 @@ def run_bot_trade(bot_id, signal):
             position_side, quantity, leverage, entry_price, opened_at, status,
             created_at, updated_at)
             VALUES (%s, %s, %s, %s, %s, %s,
-                    %s, %s, %s, NOW(), %s,
-                    NOW(), NOW())
+                    %s, %s, %s, %s, %s,
+                    %s, %s)
         """
 
         user_trade_id = insert_and_get_id(
@@ -92,7 +93,10 @@ def run_bot_trade(bot_id, signal):
                 qty,
                 bot["leverage"],
                 signal['price'],
+                now(),
                 "PENDING",  # 一開始標 PENDING，等填單/成交再改
+                now(),
+                now(),
             ),
         )
 
@@ -105,7 +109,7 @@ def run_bot_trade(bot_id, signal):
             created_at, updated_at)
             VALUES (%s, %s, %s, %s,
                     %s, %s, %s, %s,
-                    NOW(), NOW())
+                    %s, %s)
         """
 
         insert_and_get_id(
@@ -120,6 +124,8 @@ def run_bot_trade(bot_id, signal):
                 float(filled),
                 order_status,
                 json.dumps(order),
+                now(),
+                now(),
             ),
         )
 
@@ -198,7 +204,7 @@ def check_order_status(user_trade_id: int, exchange_order_id: str):
     with get_db() as db:
         sql = """
             UPDATE user_trade_orders
-            SET requested_qty=%s, filled_qty=%s, status=%s, raw_response=%s, updated_at=NOW()
+            SET requested_qty=%s, filled_qty=%s, status=%s, raw_response=%s, updated_at=%s
             WHERE user_trade_id=%s AND exchange_order_id=%s
         """
         execute(
@@ -209,6 +215,7 @@ def check_order_status(user_trade_id: int, exchange_order_id: str):
                 filled,
                 status,
                 json.dumps(order),
+                now(),
                 user_trade_id,
                 exchange_order_id,
             ),
@@ -223,10 +230,10 @@ def check_order_status(user_trade_id: int, exchange_order_id: str):
                     db,
                     """
                     UPDATE user_trades
-                    SET quantity=%s, status='OPEN', opened_at=NOW(), updated_at=NOW()
+                    SET quantity=%s, status='OPEN', opened_at=%s, updated_at=%s
                     WHERE id=%s
                     """,
-                    (amount, user_trade_id),
+                    (amount, now(), now(), user_trade_id),
                 )
             elif order_type == "CLOSE":
                 # 平倉完全成交，計算損益
@@ -249,14 +256,14 @@ def check_order_status(user_trade_id: int, exchange_order_id: str):
                     """
                     UPDATE user_trades
                     SET status='CLOSED',
-                        closed_at=NOW(),
+                        closed_at=%s,
                         exit_price=%s,
                         pnl=%s,
                         pnl_pct=%s,
-                        updated_at=NOW()
+                        updated_at=%s
                     WHERE id=%s
                     """,
-                    (exit_price, pnl, pnl_pct, user_trade_id),
+                    (now(), exit_price, pnl, pnl_pct, now(), user_trade_id),
                 )
         else:
             print(f"[CheckOrder] 訂單狀態：{status}")
@@ -369,7 +376,7 @@ def close_bot_position(bot_id, signal: dict):
              created_at, updated_at)
             VALUES (%s, %s, %s, %s,
                     %s, %s, %s, %s,
-                    NOW(), NOW())
+                    %s, %s)
         """
 
         insert_and_get_id(
@@ -384,6 +391,8 @@ def close_bot_position(bot_id, signal: dict):
                 float(filled),
                 order_status,
                 json.dumps(order),
+                now(),
+                now(),
             ),
         )
 
@@ -392,10 +401,10 @@ def close_bot_position(bot_id, signal: dict):
             db,
             """
             UPDATE user_trades
-            SET status='CLOSING', exit_price=%s, updated_at=NOW()
+            SET status='CLOSING', exit_price=%s, updated_at=%s
             WHERE id=%s
             """,
-            (user_trade["id"], close_price),
+            (close_price, now(), user_trade["id"]),
         )
 
     print(f"[Bot {bot_id}] 已寫入 user_trade_orders (CLOSE)，user_trade {user_trade['id']} 標記為 CLOSING")

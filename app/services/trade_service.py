@@ -46,10 +46,9 @@ def run_bot_trade(bot_id, signal):
     try:
         order = client.create_order(
             symbol=bot["exchange_symbol"],
-            type='limit',
+            type='market',
             side='buy',  # hedge_mode：多單 = buy
             amount=qty,
-            price=signal["price"],
             params={
                 'marginMode': 'isolated',
                 'tradeSide': 'open',   # 開倉
@@ -199,20 +198,23 @@ def check_order_status(user_trade_id: int, exchange_order_id: str):
     filled = order.get("filled") or 0
     amount = order.get("amount") or None
     avg_price = order.get("average") or order.get("price") or user_trade_order["price"]
+    fee = (order.get("fee") or {}).get("cost") or 0
 
     # 3. 更新 user_trade_orders
     with get_db() as db:
         sql = """
             UPDATE user_trade_orders
-            SET requested_qty=%s, filled_qty=%s, status=%s, raw_response=%s, updated_at=%s
+            SET price=%s, requested_qty=%s, filled_qty=%s, fee=%s, status=%s, raw_response=%s, updated_at=%s
             WHERE user_trade_id=%s AND exchange_order_id=%s
         """
         execute(
             db,
             sql,
             (
+                avg_price,
                 amount,
                 filled,
+                fee,
                 status,
                 json.dumps(order),
                 now(),
@@ -230,12 +232,22 @@ def check_order_status(user_trade_id: int, exchange_order_id: str):
                     db,
                     """
                     UPDATE user_trades
-                    SET quantity=%s, status='OPEN', opened_at=%s, updated_at=%s
+                    SET quantity=%s, entry_price=%s, status='OPEN', opened_at=%s, updated_at=%s
                     WHERE id=%s
                     """,
-                    (amount, now(), now(), user_trade_id),
+                    (amount, avg_price, now(), now(), user_trade_id),
                 )
             elif order_type == "CLOSE":
+                open_user_trade_order = query_one(
+                    db,
+                    """
+                    SELECT * FROM user_trade_orders
+                    WHERE user_trade_id=%s AND type='OPEN'
+                    ORDER BY id DESC
+                    LIMIT 1
+                    """,
+                    (user_trade_id),
+                )
                 # 平倉完全成交，計算損益
                 print(f"[CheckOrder] 平倉完全成交，更新 user_trade {user_trade_id} 為 CLOSED")
 
@@ -245,11 +257,11 @@ def check_order_status(user_trade_id: int, exchange_order_id: str):
                 side = user_trade["position_side"]  # LONG / SHORT
 
                 if side == "LONG":
-                    pnl = (exit_price - entry_price) * qty
-                    pnl_pct = (exit_price / entry_price - 1) * 100
+                    pnl = (exit_price - entry_price) * qty - float(open_user_trade_order["fee"]) - float(fee)
                 else:
-                    pnl = (entry_price - exit_price) * qty
-                    pnl_pct = (entry_price / exit_price - 1) * 100
+                    pnl = (entry_price - exit_price) * qty - float(open_user_trade_order["fee"]) - float(fee)
+
+                pnl_pct = pnl / (exit_price * qty) * 100 * float(user_trade['leverage'])
 
                 execute(
                     db,
@@ -344,10 +356,9 @@ def close_bot_position(bot_id, signal: dict):
     try:
         order = client.create_order(
             symbol=symbol,
-            type="limit",
+            type="market",
             side=close_side,
             amount=qty,
-            price=close_price,
             params={
                 "marginMode": "isolated",
                 "tradeSide": "close",  # ★ 關倉

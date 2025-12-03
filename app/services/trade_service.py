@@ -58,7 +58,7 @@ def run_bot_trade(bot_id, signal):
         print(f"[Bot {bot_id}] 下單失敗: {str(e)}")
         return None
 
-    print("交易所回應：", order)
+    print(f"[Bot {bot_id}] 交易所回應：", order)
 
     exchange_order_id = (
         order.get("id")

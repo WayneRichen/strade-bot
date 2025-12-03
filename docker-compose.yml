@@ -1,21 +1,16 @@
 services:
-  worker:
-    build: .
-    command: poetry run python -m app.worker
-    env_file:
-      - .env
-    restart: unless-stopped
-
-  worker1:
-    build: .
-    command: poetry run python -m app.worker
-    env_file:
-      - .env
-    restart: unless-stopped
-
   scheduler:
     build: .
     command: poetry run python -m app.main_scheduler
     env_file:
       - .env
+    volumes:
+      - ./logs:/app/logs
     restart: unless-stopped
+
+  redis:
+    container_name: redis
+    image: redis:latest
+    ports:
+        - 6379:6379
+    restart: always

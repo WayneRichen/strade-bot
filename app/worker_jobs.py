@@ -1,8 +1,11 @@
 from app.services.strategy_service import run_strategy
 from app.services.bot_service import get_bots_for_strategy
 from app.services.trade_service import run_bot_trade, check_order_status, close_bot_position
+from app.utils.db import execute, get_db, query_one
+from app.utils.now import now
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, Any
+import json
 import os
 import time
 from dotenv import load_dotenv
@@ -98,6 +101,32 @@ def run_strategy_tick_job(strategy_id: int) -> Dict[str, Any]:
         f"=== 完成策略 Tick: strategy_id={strategy_id}, "
         f"bots={bot_count}, success={success_count}, fail={fail_count} ==="
     )
+
+    with get_db() as db:
+        strategy_trade = query_one(
+            db, "SELECT * FROM strategy_trades WHERE id=%s", (signal["trade_id"]))
+        if strategy_trade['status'] == 'OPEN':
+            update_data = {'bots_open_count': success_count, 'bots_open_failed_count': fail_count}
+        else:
+            update_data = {'bots_close_count': success_count, 'bots_close_failed_count': fail_count}
+        extra = strategy_trade.get('extra')
+        if extra is None:
+            extra = {}
+        elif isinstance(extra, str):
+            try:
+                extra = json.loads(extra)
+            except json.JSONDecodeError:
+                extra = {}
+        extra.update(update_data)
+        execute(
+            db,
+            """
+            UPDATE strategy_trades
+            SET extra=%s, updated_at=%s
+            WHERE id=%s
+            """,
+            (json.dumps(extra), now(), signal["trade_id"]),
+        )
 
     return {
         "status": "completed",

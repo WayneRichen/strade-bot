@@ -52,6 +52,7 @@ def run_bot_trade(bot_id, signal):
             params={
                 'marginMode': 'isolated',
                 'tradeSide': 'open',   # 開倉
+                'presetStopLossPrice': str(round(signal["price"] * 0.9)),
             },
         )
     except ExchangeError as e:
@@ -366,6 +367,16 @@ def close_bot_position(bot_id, signal: dict):
         )
     except ExchangeError as e:
         print(f"[Bot {bot_id}] 平倉下單失敗：{str(e)}")
+        with get_db() as db:
+            execute(
+                db,
+                """
+                UPDATE user_trades
+                SET status='ERROR', error_message=%s, updated_at=%s
+                WHERE id=%s
+                """,
+                (str(e), now(), user_trade["id"]),
+            )
         return None
 
     print(f"[Bot {bot_id}] 平倉下單交易所回應：", order)
